@@ -161,7 +161,7 @@ module.exports.getHouses = async (req, res) => {
       filters.price = { $lte: priceMax };
     }
 
-    // Rechercher les maisons en fonction des filtres
+    // rechercher les maisons en fonction des filtres
     const houses = await House.find(filters);
 
     if (houses.length === 0) {

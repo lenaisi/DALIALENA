@@ -74,7 +74,7 @@ async (req, res) => {
 );
 
 
-
+//google
 app.get('/auth/google/failure',(req,res) => {
 res.send("something went wrong!")
 

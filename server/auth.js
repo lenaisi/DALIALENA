@@ -7,7 +7,7 @@ passport.use(new GoogleStrategy({
   callbackURL: '/auth/google/callback' // URL de callback après l'authentification
 },
 (accessToken, refreshToken, profile, done) => {
-  // Callback appelé après l'authentification réussie avec Google
+  // Callbackk appelé après l'authentification réussie avec Google
   const googleUser = {
     email: profile._json.email,
     name: profile._json.name,
