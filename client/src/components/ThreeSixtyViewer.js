@@ -6,19 +6,21 @@ import { gsap } from 'gsap'; // Importer GSAP
 
 const ThreeSixtyViewer = () => {
   const mountRef = useRef(null);
-  let scene, camera, renderer, controls;
+  const cameraRef = useRef(null); // Utiliser useRef pour stocker la caméra
+  let scene, renderer, controls;
   let poiObjects = []; // pour stocker les points d'intérêt
 
   useEffect(() => {
     // Initialiser la scène, la caméra et le rendu
     scene = new THREE.Scene();
-    camera = new THREE.PerspectiveCamera(
+    const camera = new THREE.PerspectiveCamera(
       75,
       window.innerWidth / window.innerHeight,
       0.1,
       1000
     );
     camera.position.set(0, 0, 0.1);
+    cameraRef.current = camera; // Assigner la caméra à cameraRef
 
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -54,12 +56,15 @@ const ThreeSixtyViewer = () => {
     ];
 
     poiPositions.forEach((poiPos) => {
-      const poiGeometry = new THREE.SphereGeometry(5, 32, 32);
-      const poiMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 }); // Rouge
+      // Créer une géométrie personnalisée pour le point d'intérêt
+      const poiGeometry = new THREE.TorusGeometry(7, 2, 50, 100); // Géométrie de pneu
+      // Utiliser un matériau avec une opacité
+      const poiMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5 }); // Blanc avec 50% d'opacité
       const poi = new THREE.Mesh(poiGeometry, poiMaterial);
       poi.position.set(poiPos.x, poiPos.y, poiPos.z);
-      poi.visible = true; // Assurez-vous que le POI est visible au départ
-      poiObjects.push(poi); // Ajouter l'objet du point d'intérêt au tableau
+      poi.rotation.x = Math.PI / 2; // Tourner le pneu pour qu'il soit aligné avec le plan XY
+      poi.visible = true;
+      poiObjects.push(poi);
       scene.add(poi);
     });
 
@@ -75,27 +80,26 @@ const ThreeSixtyViewer = () => {
       // Réinitialiser l'orientation de la caméra
       controls.target.set(0, 0, 0);
       camera.lookAt(0, 0, -1);
-    
+
       // Obtenir la position du clic de la souris par rapport au canvas
       const rect = renderer.domElement.getBoundingClientRect();
       const mouse = new THREE.Vector2(
         ((event.clientX - rect.left) / rect.width) * 2 - 1,
         -((event.clientY - rect.top) / rect.height) * 2 + 1
       );
-    
+
       // Utiliser le Raycaster pour détecter les intersections avec les POIs
       const raycaster = new THREE.Raycaster();
       raycaster.setFromCamera(mouse, camera);
-    
+
       // Trouver les objets intersectés
       const intersects = raycaster.intersectObjects(poiObjects);
-    
+
       // Si des intersections sont trouvées, animer la caméra vers le premier POI
       if (intersects.length > 0) {
         const targetPoi = intersects[0].object;
         const targetPosition = targetPoi.position.clone();
-        targetPoi.visible = false; // Rendre le POI invisible
-    
+        
         gsap.to(camera.position, {
           duration: 2,
           x: targetPosition.x,
@@ -103,8 +107,12 @@ const ThreeSixtyViewer = () => {
           z: targetPosition.z - 10, // Ajuster cette valeur pour contrôler la distance du POI
           onUpdate: () => {
             controls.update();
+          },
+          onComplete: () => {
+            targetPoi.visible = false; // Rendre le POI invisible après l'animation
           }
         });
+
         gsap.to(controls.target, {
           duration: 2,
           x: targetPosition.x,
@@ -212,6 +220,24 @@ const ThreeSixtyViewer = () => {
     }
   };
 
+  // Fonction pour zoomer
+  const handleZoomIn = () => {
+    const camera = cameraRef.current;
+    if (camera) {
+      camera.fov = Math.max(camera.fov - 10, 10); // Empêcher de zoomer trop près
+      camera.updateProjectionMatrix();
+    }
+  };
+
+  // Fonction pour dézoomer
+  const handleZoomOut = () => {
+    const camera = cameraRef.current;
+    if (camera) {
+      camera.fov = Math.min(camera.fov + 10, 100); // Empêcher de dézoomer trop loin
+      camera.updateProjectionMatrix();
+    }
+  };
+
   return (
     <div ref={mountRef} style={{ position: 'relative', width: '100vw', height: '100vh' }}>
       <button
@@ -231,11 +257,47 @@ const ThreeSixtyViewer = () => {
       >
         <i className="fas fa-expand"></i>
       </button>
+      <button
+        onClick={handleZoomIn}
+        style={{
+          position: 'absolute',
+          top: '10px',
+          left: '10px',
+          zIndex: 1,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          color: 'white',
+          border: 'none',
+          borderRadius: '5px',
+          padding: '10px',
+          cursor: 'pointer'
+        }}
+      >
+        <i className="fas fa-search-plus"></i>
+      </button>
+      <button
+        onClick={handleZoomOut}
+        style={{
+          position: 'absolute',
+          top: '50px',
+          left: '10px',
+          zIndex: 1,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          color: 'white',
+          border: 'none',
+          borderRadius: '5px',
+          padding: '10px',
+          cursor: 'pointer'
+        }}
+      >
+        <i className="fas fa-search-minus"></i>
+      </button>
     </div>
   );
 };
 
 export default ThreeSixtyViewer;
+
+
 // import React, { useEffect, useRef } from 'react';
 // import * as THREE from 'three';
 // import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
